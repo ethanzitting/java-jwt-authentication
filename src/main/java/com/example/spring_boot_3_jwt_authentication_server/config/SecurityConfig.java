@@ -26,38 +26,39 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final UserService userService;
+  private final PasswordEncoder passwordEncoder;
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userService.userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder);
-        return authProvider;
-    }
+  @Bean
+  public AuthenticationProvider authenticationProvider() {
+      DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+      authProvider.setUserDetailsService(userService.userDetailsService());
+      authProvider.setPasswordEncoder(passwordEncoder);
+      return authProvider;
+  }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+  @Bean
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+      return config.getAuthenticationManager();
+  }
+  
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+    .csrf(csrf -> csrf 
+      .disable()
+    )
+    .sessionManagement(session -> session
+      .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+    )
+    .authorizeHttpRequests(authorize -> authorize
+      .requestMatchers(HttpMethod.POST, "/api/v1/signup", "/api/v1/signin").permitAll()
+      .requestMatchers(HttpMethod.GET, "/api/v1/test/**").permitAll()
+      .anyRequest().authenticated()
+    )
+    .authenticationProvider(authenticationProvider()).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authorize -> {
-                authorize
-                    .requestMatchers(HttpMethod.POST, "/api/v1/signup", "/api/v1/signin").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/v1/test/**").permitAll()
-                    .anyRequest().authenticated();
-                }
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        
-        return http.build();
-    }
+    return http.build();
+  }
 }
